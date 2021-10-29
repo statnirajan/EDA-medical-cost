@@ -5,7 +5,7 @@ The medical cost dataset contains information about beneficiaries in an insuranc
 
 Various data visualization techniques have been used to demostrate the distribution of variables explore relationships among them.
 
-Click (https://rpubs.com/nirajan_cmu/edaR) to see this project.
+Visit https://rpubs.com/nirajan_cmu/edaR to see this project.
 
 
 
