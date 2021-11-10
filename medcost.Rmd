@@ -1,0 +1,424 @@
+---
+title: "EDA of Medical Cost Dataset"
+author: "Nirajan Budhathoki"
+date: "8/27/2021"
+output: html_document
+---
+## Exploratory Data Analysis
+Exploratory Data Analysis (EDA) is an approach to data analysis that mainly involves summarizing data using visualization methods. Prior to testing any hypothesis or developing model, EDA can be used to understand data, primarily the distribution of variables and relationship among them. EDA techniques are mostly graphical although some quantitative summaries of data may be presented.
+
+## The Data 
+Data for this project is taken from https://www.kaggle.com/mirichoi0218/insurance  
+It contains information about beneficiaries in an insurance plan, with features indicating characteristics of the patient as well as the total medical expenses charged to the plan for the calendar year.
+
+Let's load required libraries, read in the data and start summarizing it.
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(gridExtra)
+setwd("/Users/nirajanbudhathoki/OneDrive - Central Michigan University/INSU")
+mydata <- read.csv('insurance.csv',stringsAsFactors = TRUE)
+````
+
+The head option, by default returns first six rows of the dataset. This default behavior can be changed. Another option is the "tail", which returns the last rows.
+
+```{r}
+head(mydata,n = 10)
+```
+The str() function provides information on size of dataset, variables names and types, and few initial values.
+```{r}
+str(mydata)
+```
+
+summary() returns frequency counts in each categories of factor (categorical) variables and important numerical summaries for numeric variables.
+
+```{r}
+summary(mydata)
+```
+
+**Check for missing values**  
+The command below returns number of missing values, if present in the dataset.
+```{r}
+sum(is.na(mydata))
+```
+
+Missing values, if present, should be dealt carefully before any further exercises. The simplest solution is to drop them from dataset. However, if there are reasons and you want to take them into consideration, imputation techniques can be used to substitute them with reasonable values.
+
+Let's start visualization of variables and their relationship.  
+
+### Plots involving one variable  
+
+#### Distribution of patients based on categorical features 
+Although the numerical summaries are already returned by the summary() function, let's get some visual summaries.
+
+**1. Distribution by sex**
+
+```{r}
+ggplot(mydata,aes(x=sex))+
+  geom_bar(width = 0.5)+
+  labs(title = "Distribution by Sex", 
+       x="Sex", y="Number of patients")
+```
+
+It seems that there are somewhat equal number of male and female patients. We can also get the exact numbers on the plot.
+
+```{r}
+ggplot(mydata, aes(x = sex)) +
+  geom_bar(width=0.5) +
+  geom_text(aes(label = ..count..), stat = "count", vjust = 1.5, colour = "white")+
+  labs(title = "Distribution by sex", 
+       x="Sex", y="Number of patients")
+```
+
+**2. Distribution by Smoking Habits**
+
+```{r}
+ggplot(mydata,aes(x=smoker))+
+  geom_bar(width = 0.8,fill='lightblue',color='black')+
+  geom_text(aes(label = ..count..), stat = "count", vjust = 1.5, colour = "black")+
+  labs(title = "Distribution by smoking habits", 
+       x="Smoker ",y="Number of patients")+
+  theme_minimal()
+```
+  
+**3. Distribution by region of residence**
+
+```{r}
+ggplot(mydata,aes(x=region))+
+  geom_bar(fill = "lightpink1")+
+  geom_text(aes(label = ..count..), stat = "count", vjust = 1.5, colour = "black")+
+  labs(title = "Distribution by Region of Residence", 
+       x="Region",y="Number of patients")+
+  coord_flip()
+```
+
+**4. Distribution by number of children**
+
+```{r}
+ggplot(mydata,aes(x=children))+
+  geom_bar(fill = "skyblue")+
+  geom_text(aes(label = ..count..), stat = "count", vjust = 1.5, colour = "black")+
+  theme_classic()+
+  labs(title = "Distribution by number of children covered by insurance plan",
+       x = "Number of children", y = "Number of patients")
+```
+
+#### Distribution of patients based on numeric features
+
+**1. Distribution by age**  
+Numeric features may be presented visually in plots such as histogram and density plots.
+```{r}
+ggplot(mydata,aes(x=age))+
+  geom_histogram()+
+  labs(title = "Distribution by age", 
+        x="Age (Years)",y="Number of patients")
+```
+
+We can pick a better binwidth. Let's try 5. Each bin(interval) has the width of 5 years.
+
+```{r}
+ggplot(mydata, aes(x = age)) +
+  geom_histogram(binwidth = 5,colour = "black")+
+  labs(title = "Distribution by age", 
+       x="Age",y="Number of patients")
+```
+
+Clearly, the data is not bell-shaped. A dataset is said to come from a normal distribution if it has a bell-shaped histogram. Many statistical test rely on the assumption that the data come from a normally distributed population. A Q-Q plot can be drawn to check the normality assumption.
+
+```{r}
+ggplot(mydata, aes(sample = age)) +
+  geom_qq() +
+  geom_qq_line()
+```
+
+On the x-axis are theoretical quantiles from a normal distribution while sample quantiles are along the y-axis. If the plotted points match up along the straight lines, then we say that the quantiles match and hence the data comes from a normal distribution. The age data does not seem to be normally distributed.
+
+**2. Distribution by BMI and Charge**  
+Likewise, we can get the plot of bmi and charges. This time let's present data in density plots on the same row.
+
+```{r}
+p1 = ggplot(mydata, aes(x = bmi)) +
+  geom_density(fill = "royalblue2", alpha = .2)+
+  labs(title = "BMI Distribution")
+p2 = ggplot(mydata, aes(x = charges)) +
+  geom_density(fill = "royalblue2", alpha = .2)+
+  labs(title = "Charge Distribution")
+grid.arrange(p1, p2, ncol=2)
+```
+
+While the bmi data seem to follow a normal distribution, charge does not. We can again check the QQ plot of these two.
+
+```{r}
+p3 = ggplot(mydata, aes(sample = bmi)) +
+  geom_qq() +
+  geom_qq_line()+
+  labs(title = "QQ Plot for BMI data")
+
+p4 = ggplot(mydata, aes(sample = charges)) +
+  geom_qq() +
+  geom_qq_line()+
+  labs(title = "QQ Plot for Charge data")
+
+grid.arrange(p3, p4, ncol=2)
+```
+
+We have further evidence for non-normality of the charge data from QQ plot. For confirmation, we can use statistical test like Shapiro-Wilk for testing normality. The test is done with the null hypothesis that the data is normal vs alternative hypothesis that the data is not normal.
+
+```{r}
+shapiro.test(mydata$charges)
+```
+
+Since the p-value is very low, we reject null hypothesis at 5% level of significance. We conclude that the charges data is significantly different from a normal distribution. In other words, we cannot assume normality.
+
+For bmi data that looks normally distributed, we can build a histogram and superimpose a density curve to get a better picture.
+
+```{r}
+ggplot(mydata, aes(x = bmi, y = ..density..)) +
+  geom_histogram(fill = "slategray2", colour = "grey60", size = .2) +
+  geom_density()+
+  labs(title = "BMI Distribution")
+```
+
+### Plots involving two variables
+
+#### Both Categorical
+
+**1. Distribution by Sex Vs Smoking Habit**
+```{r}
+ggplot(mydata, aes(sex, fill = smoker))+
+  geom_bar(position = "dodge")+
+  labs(title = "Sex Vs Smoking Habit",
+       x = "Sex", y = "Number of patients")
+```
+
+A simple way to get frequencies in each cateogries is to use cross-tabulation.
+
+```{r}
+table(mydata$sex, mydata$smoker)
+```
+
+**2. Distribution by smoking habit in each region**
+
+```{r}
+ggplot(mydata) +
+  geom_count(mapping = aes(x = smoker, y = region))+
+  labs(title = "Distribution of Smoker by Region",
+       x = "Smoking Habit", y = "Region")
+```
+
+We can get the actual counts accompanying above plot.
+
+```{r}
+mydata %>% 
+  count(smoker, region)
+```
+
+#### One Categorical and One Continuous  
+
+**1. Distribution of bmi by sex**
+
+```{r}
+ggplot(mydata,aes(x=sex,y=bmi,color=sex))+
+  geom_boxplot()+
+  labs(title = "Distribution of BMI by sex",
+       x = "Sex", y = "BMI")
+```
+
+Median BMI value for male looks slightly higher than for female. Let's see the exact mean, median, and frequencies in each group. 
+
+```{r}
+mydata %>%
+  group_by(sex) %>%
+  summarise(Mean = mean(bmi),
+            Median = median(bmi),
+            SD = sd(bmi),
+            N = n())
+```
+
+Moreover, we see some outliers in the dataset. Outliers should always be treated appropriately before carrying out further statistical analysis. A simple and unfortunately most common solution is to throw away outliers. However, you might have compelling reasons to consider them into analysis. In such cases, imputation with a reasonable value or data transformation might be helpful.
+
+**2. Distribution of bmi by region**
+
+```{r}
+ggplot(mydata, aes(x = bmi)) +
+  geom_histogram(binwidth = 5, fill = "lightblue", colour = "black") +
+  labs(title = "Distribution of BMI by Region",
+       x = "BMI", y = "Number of patients")+
+  facet_grid(region ~ .)
+```
+
+BMI seems to be somewhat homogeneously distributed in each region. The histograms look bell-shaped.
+
+**3. Distribution of charges by smoking habit**
+
+Shown below is the density plot of charges by smoking habits. A vertical line is placed at the median values for each group.
+
+```{r}
+med_charges <- mydata %>%
+  group_by(smoker) %>%
+  summarize(Median=median(charges))
+ggplot(mydata, aes(charges))+
+  geom_density(aes(fill=smoker),alpha=0.4)+
+  geom_vline(data = med_charges, aes(xintercept = Median,color=smoker))+
+  labs(title = "Distribution of Charges by Smoker")
+```
+
+**4. Distribution of charges by region**
+
+The violin plot below displays “density” of the distribution, highlighting the areas where more points are found. Box plot inside show five-points summaries.
+```{r}
+ggplot(mydata, aes(region, charges))+
+  geom_violin()+
+  geom_boxplot(width = 0.1)+
+  labs(title = "Distribution of Charges by Region",
+       x = "Region",
+       y = "Charges")
+```
+
+**5. Distribution of charges by number of children**
+
+```{r}
+ggplot(mydata, aes(x = children, y = charges))+
+  geom_point(color = 'red',position = "jitter",alpha=0.4)+
+  labs(title = "Distribution of charges by number of children",
+       x = "Number of children",
+       y = "Charges")
+```
+
+Most of the patients have three or fewer children covered by the insurance plan and some of them are highly charged. Patients with four or more children are often charged low.
+
+#### Both Continuous
+
+**1. Distribution of charges vs age**
+
+```{r}
+ggplot(mydata,aes(x=age,y=charges))+
+  geom_point()+
+  labs(title = "Charges Vs Age",
+       x = "Age", y = "Charges")
+```
+
+A slightly increasing trend is found on the plot of charges vs bmi.
+**2. Distribution of charges vs bmi**
+
+```{r}
+ggplot(mydata,aes(x = bmi, y = charges)) +
+  geom_point(alpha=0.5)+
+  labs(title = "Charges Vs BMI",
+       x = "BMI", y = "Charges")
+```
+
+No clear trend in charges vs bmi plot. However, we can say that charges higher than $40,000 are all made to patients with BMI greater than 30 kg/m^2.
+
+
+### Plots involving three variables
+
+**1. Distribution of bmi in different region by sex**
+
+```{r}
+ggplot(mydata, aes(x = region, y = bmi, fill = sex)) +
+  geom_col(position = "dodge")+
+  scale_fill_brewer(palette = "Accent")+
+  labs(title = "BMI in different Region by Sex",
+       x = "Region", y = "BMI")
+```
+
+We can get summary statistics of each combination in the following way.
+```{r}
+mydata %>%
+group_by(sex,region) %>%
+summarise(Mean = mean(bmi), N=n())
+```
+
+**2. Distribution of charges in different region by sex**
+
+```{r}
+ggplot(mydata, aes(x = region, y = charges, fill = sex)) +
+  geom_col() +
+  scale_fill_brewer(palette = "Pastel1")+
+  labs(title = "Charges in different Region by Sex",
+       x = "Region", y = "Charges")+
+  theme_light()
+```
+
+The highest charges for males are in the southeast region while the lowest are in the northwest. Again, we can get a summary table of these values for all combinations. Although median value would be a better representation than mean for data that are not normal such as charges, let's compare mean for the sake of demonstration.
+
+```{r}
+mydata %>%
+group_by(sex,region) %>%
+summarise(Mean = mean(charges), N=n())
+```
+
+**3. Distribution of Charges Vs BMI by sex**
+
+```{r}
+ggplot(mydata,aes(x=bmi,y=charges,color=sex))+
+  geom_point(alpha=0.6)+
+  labs(title = "Charges Vs BMI by sex",
+       x = "BMI", y = "Charges")
+```
+
+Just for illustration, let's define charges greater than or equal to $30,000 as higher charges.
+
+```{r}
+higher.charges <- mydata %>%
+  filter(charges >= 30000)
+```
+
+Now, we can see the distribution of charges vs bmi for different sexes. We can also fit separate linear models to each sex.
+
+```{r}
+ggplot(higher.charges,aes(x=bmi,y=charges,color=sex))+
+  geom_point()+
+  stat_smooth(method=lm)+
+  labs(title = "Higher Charges Vs BMI by Sex",
+       x = "BMI", y = "Charges >= 30000")
+```
+
+The question of appropriateness of a linear model is different. However, if we were to fit a linear model, for charges greater than or equal to $30,000, the rate of increase in charges with BMI is higher in female than in males.
+
+Alternatively, we can use facets to have different plots for the two groups.
+
+```{r}
+ggplot(higher.charges,aes(x=bmi,y=charges))+
+  geom_point(alpha=0.5)+
+  stat_smooth(method = lm)+
+  facet_grid(.~sex)+
+  labs(title = "Higher Charges Vs BMI by Sex",
+       x = "BMI",
+       y = "Charges >= 30000")
+```
+
+**4. Plot correlations among continuous variables**
+
+```{r}
+library(corrplot)
+corr<-cor(mydata[,c(1,3,7)])
+corrplot(corr, type="upper", method="number", tl.pos="d")
+```
+
+Although there are positive correlation coefficients, no pair of variables are highly correlated.
+
+### Plots involving four variables
+
+**1. Distribution of Charges Vs BMI by sex in each region**
+
+```{r}
+ggplot(mydata,aes(x=bmi,y=charges,color=sex))+
+  geom_point(alpha = 0.6)+
+  facet_wrap(~region)+
+  labs(title = "Distribution of Charges vs BMI by Sex in each Region",
+       x = "BMI",
+       y = "Charges")
+```
+
+The distribution looks similar in each region.
+
+In an attempt to doing exploratory data analysis (EDA), we explored several relationship between variables in this study. Understanding these relationships are crucial before doing any hypothesis tests or statistical modeling.
+
+**References**  
+[1] Chang, W. (2013). R graphics cookbook. O'Reilly.  
+[2] Wickham, H., & Grolemund, G. (2016). R for data science: Import, tidy, transform, visualize, and model data. O'Reilly.
+
+
+
